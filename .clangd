@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [-I../cibyl-bin-linux32-21/mips-cibyl-elf/mips-cibyl-elf/sys-root/usr/include/]

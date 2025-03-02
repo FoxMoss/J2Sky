@@ -1,0 +1,8 @@
+*.jar
+*.jad
+tmpclasses/
+classes/
+webserver/
+*.out
+*.o
+program

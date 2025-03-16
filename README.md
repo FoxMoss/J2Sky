@@ -31,3 +31,7 @@ Install [Cibyl](https://github.com/SimonKagstrom/cibyl) on Debian 6.
 Run the build scripts and create any directories as needed.
 
 If you're struggling feel free to contact me, the setup is very esoteric.
+
+### How to run?
+
+Start a [http-proxy](https://github.com/FoxMoss/http-proxy) compliant proxy on your `localhost:8000`.

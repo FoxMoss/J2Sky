@@ -1,7 +1,7 @@
 SRC_DOOM = main.o http.o encoding.o jsmn.o
 WTK_PATH=$(realpath ../WTK2.5.2)
 
-all:	disapointment-j2me.jad
+all:	j2sky-j2me.jad
 
 tmpclasses/Cibyl.j: program
 	cibyl-mips2java -O -Ipolyfill -d tmpclasses program
@@ -9,12 +9,12 @@ tmpclasses/Cibyl.j: program
 include/cibyl-syscalls.db: syscalls/sys/include/cibylmem.h Makefile
 	cibyl-generate-c-header -o polyfill syscalls sys
 
-disapointment-j2me.jad: disapointment-j2me.jad.templ disapointment-j2me.jar
+j2sky-j2me.jad: j2sky-j2me.jad.templ j2sky-j2me.jar
 	cat $< > $@
 	echo -n "MIDlet-Jar-Size: " >> $@
-	wc -c disapointment-j2me.jar | cut -d ' ' -f -1 >> $@
+	wc -c j2sky-j2me.jar | cut -d ' ' -f -1 >> $@
 
-disapointment-j2me.jar: tmpclasses/Cibyl.j
+j2sky-j2me.jar: tmpclasses/Cibyl.j
 	install -d res
 	cp `cibyl-config --prefix`/mips-cibyl-elf/sys-root/usr/share/java/Main.java tmpclasses
 	cp `cibyl-config --prefix`/mips-cibyl-elf/sys-root/usr/share/java/GameScreenCanvas.java tmpclasses

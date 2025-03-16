@@ -1,5 +1,5 @@
-MIDlet-1: disapointment-j2me, , Main
-MIDlet-Name: Disapointment
+MIDlet-1: j2sky-j2me, , Main
+MIDlet-Name: j2sky
 MIDlet-Vendor: foxmoss
 MIDlet-Version: 1.0
 MicroEdition-Configuration: CLDC-1.1

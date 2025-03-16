@@ -6,4 +6,4 @@ webserver/
 *.out
 *.o
 program
-polyfill/*
+polyfill/*.db

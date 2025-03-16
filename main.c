@@ -337,7 +337,6 @@ int main() {
       (void *)NOPH_registerCallback("more_posts_ui", (int)more_posts_ui);
 
   printf("Memory: %i", NOPH_CibylMem_memorySize());
-
   login_ui();
 
   return 0;

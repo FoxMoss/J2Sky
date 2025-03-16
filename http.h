@@ -14,3 +14,4 @@
 char *get(char *url);
 char *getjwt(char *url, char *jwt);
 char *post(char *url, char *content, size_t content_len);
+char *postjwt(char *url, char *content, size_t content_len, char *jwt);

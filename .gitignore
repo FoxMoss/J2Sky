@@ -6,3 +6,4 @@ webserver/
 *.out
 *.o
 program
+polyfill/*

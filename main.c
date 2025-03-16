@@ -22,14 +22,7 @@
 NOPH_FormCommandMgr_t command_manager;
 NOPH_Item_t identifier_box;
 NOPH_Item_t password_box;
-
-enum State {
-  STATE_LOGIN,
-  STATE_LOADING,
-  STATE_MAIN,
-  STATE_ERROR,
-};
-enum State current_state;
+NOPH_Item_t post_box;
 
 struct BskyPost {
   char *handle;
@@ -41,7 +34,7 @@ struct BskyPostContainer {
   char *cursor;
 };
 
-struct BskyPostContainer grab_feed(char *jwt) {
+struct BskyPostContainer grab_feed(char *jwt, char *last_cursor) {
   char *section1 = "http://localhost:8000/https://bsky.social/xrpc/"
                    "app.bsky.feed.getFeed?feed=";
   char *decoded =
@@ -135,16 +128,26 @@ struct BskyPostContainer grab_feed(char *jwt) {
   return (struct BskyPostContainer){posts, posts_len, cursor};
 }
 
-void main_page(char *identifier, char *jwt) {
-  current_state = STATE_MAIN;
+char *last_cursor = NULL;
+char *g_identifier = NULL;
+char *g_jwt = NULL;
+
+void main_page(char *identifier, char *jwt, char *cursor);
+void more_posts_ui() { main_page(g_identifier, g_jwt, last_cursor); }
+
+void main_page(char *identifier, char *jwt, char *cursor) {
   NOPH_Display_t display = NOPH_Display_getDisplay(NOPH_MIDlet_get());
 
-  NOPH_Form_t form = NOPH_Form_new("JavaSky");
+  NOPH_Form_t form = NOPH_Form_new("J2Sky");
 
   NOPH_Item_t str_item = NOPH_StringItem_new(identifier, "");
   NOPH_Form_append(form, str_item);
 
-  struct BskyPostContainer container = grab_feed(jwt);
+  struct BskyPostContainer container = grab_feed(jwt, cursor);
+  free(last_cursor);
+  last_cursor = container.cursor;
+  g_identifier = identifier;
+  g_jwt = jwt;
 
   for (size_t index = 0; index < container.len; index++) {
 
@@ -162,18 +165,18 @@ void main_page(char *identifier, char *jwt) {
     free(container.posts[index].text);
   }
 
+  command_manager = NOPH_FormCommandMgr_new(form);
+  NOPH_FormCommandMgr_addCommand(command_manager, 1, 2);
+  NOPH_FormCommandMgr_addCommand(command_manager, 2, 4);
+
   NOPH_Display_setCurrent(display, form);
   free(container.posts);
-
-  free(identifier);
-  free(jwt);
 }
 
 void error(char *error_str) {
-  current_state = STATE_ERROR;
   NOPH_Display_t display = NOPH_Display_getDisplay(NOPH_MIDlet_get());
 
-  NOPH_Form_t form = NOPH_Form_new("JavaSky");
+  NOPH_Form_t form = NOPH_Form_new("J2Sky");
 
   NOPH_Item_t str_item = NOPH_StringItem_new("Error: ", error_str);
   NOPH_Form_append(form, str_item);
@@ -184,7 +187,6 @@ void error(char *error_str) {
 }
 
 void loading_ui() {
-  current_state = STATE_LOADING;
   NOPH_Display_t display = NOPH_Display_getDisplay(NOPH_MIDlet_get());
 
   NOPH_Form_t form = NOPH_Form_new("J2Sky Loading");
@@ -244,7 +246,7 @@ void login_callback() {
           json_tokens[index + 1].end - json_tokens[index + 1].start, 1);
       memcpy(jwt, return_data + json_tokens[index + 1].start,
              json_tokens[index + 1].end - json_tokens[index + 1].start);
-      main_page(identifier, jwt);
+      main_page(identifier, jwt, NULL);
     }
   }
 
@@ -252,7 +254,6 @@ void login_callback() {
 }
 
 void login_ui() {
-  current_state = STATE_LOGIN;
   NOPH_Display_t display = NOPH_Display_getDisplay(NOPH_MIDlet_get());
 
   NOPH_Form_t form = NOPH_Form_new("J2Sky Login");
@@ -269,18 +270,71 @@ void login_ui() {
   NOPH_Display_setCurrent(display, form);
 }
 
-void key_press(int key) {
-  printf("%i\n", key);
-  if (current_state == STATE_LOADING && key == NOPH_Canvas_FIRE) {
-    login_callback();
-  }
+void post_ui() {
+  NOPH_Display_t display = NOPH_Display_getDisplay(NOPH_MIDlet_get());
+
+  NOPH_Form_t form = NOPH_Form_new("J2Sky Post");
+  command_manager = NOPH_FormCommandMgr_new(form);
+  NOPH_FormCommandMgr_addCommand(command_manager, 0, 3);
+
+  post_box = NOPH_TextField_new("Post:", "", 300, NOPH_TextField_ANY);
+
+  NOPH_Form_append(form, post_box);
+  NOPH_Display_setCurrent(display, form);
+}
+
+void post_callback_ui() {
+  printf("post_callback_ui\n");
+  char *url = "http://localhost:8000/https://bsky.social/xrpc/"
+              "com.atproto.repo.applyWrites";
+  char part1[] = "{\"repo\":\"";
+  // g_identifier
+  char part2[] =
+      "\",\"writes\":[{\"$type\":\"com.atproto.repo.applyWrites#create\","
+      "\"collection\":\"app.bsky.feed.post\","
+      "\"value\":{\"$type\":\"app.bsky.feed.post\",\"createdAt\":\"";
+
+  char time[256];
+  int time_len = NOPH_String_toCharPtr(NOPH_CibylMem_getIso(), time, 255);
+  time[time_len] = '\0';
+
+  char part3[] = "\",\"text\":\"";
+
+  int post_size = NOPH_TextField_size(post_box) + 1;
+  char *post = (char *)calloc(post_size, 1);
+  NOPH_TextField_getCString(post_box, post, post_size);
+
+  char part4[] = "\",\"langs\":[\"en\"]}}],\"validate\":true}";
+
+  char *data = (char *)calloc(strlen(part1) + strlen(g_identifier) +
+                                  strlen(part2) + strlen(time) + strlen(part3) +
+                                  strlen(post) + strlen(part4) + 1,
+                              1);
+  strcat(data, part1);
+  strcat(data, g_identifier);
+  strcat(data, part2);
+  strcat(data, time);
+  strcat(data, part3);
+  strcat(data, post);
+  strcat(data, part4);
+
+  free(postjwt(url, data, strlen(data), g_jwt));
+  free(data);
+
+  main_page(g_identifier, g_jwt, NULL);
 }
 
 int main() {
   NOPH_FormCommandMgr_Setup(0);
   void *cb_login_callback =
-      NOPH_registerCallback("login_callback", login_callback);
-  void *cb_login_ui = NOPH_registerCallback("login_ui", login_ui);
+      (void *)NOPH_registerCallback("login_callback", (int)login_callback);
+  void *cb_login_ui = (void *)NOPH_registerCallback("login_ui", (int)login_ui);
+
+  void *cb_post_ui = (void *)NOPH_registerCallback("post_ui", post_ui);
+  void *cb_post_callback_ui =
+      (void *)NOPH_registerCallback("post_callback_ui", (int)post_callback_ui);
+  void *cb_more_posts_ui =
+      (void *)NOPH_registerCallback("more_posts_ui", (int)more_posts_ui);
 
   printf("Memory: %i", NOPH_CibylMem_memorySize());
 

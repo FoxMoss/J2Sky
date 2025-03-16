@@ -31,7 +31,7 @@ char *get(char *url) {
   NOPH_InputStream_t istream = NOPH_HttpConnection_openInputStream(connection);
 
   int size = NOPH_InputStream_available(istream);
-  char *buffer = (char *)malloc(size);
+  char *buffer = (char *)calloc(size + 1, 1);
 
   short eof;
   NOPH_InputStream_read_into(istream, buffer, size, &eof);
@@ -56,7 +56,7 @@ char *getjwt(char *url, char *jwt) {
   NOPH_InputStream_t istream = NOPH_HttpConnection_openInputStream(connection);
 
   int size = NOPH_InputStream_available(istream);
-  buffer = (char *)malloc(size);
+  buffer = (char *)calloc(size + 1, 1);
   short eof;
   NOPH_InputStream_read_into(istream, buffer, size, &eof);
 
@@ -85,7 +85,7 @@ char *post(char *url, char *content, size_t content_len) {
   NOPH_InputStream_t istream = NOPH_HttpConnection_openInputStream(connection);
 
   int size = NOPH_InputStream_available(istream);
-  buffer = (char *)malloc(size);
+  buffer = (char *)calloc(size + 1, 1);
   short eof;
   NOPH_InputStream_read_into(istream, buffer, size, &eof);
   NOPH_HttpConnection_close(connection);
@@ -100,12 +100,12 @@ char *postjwt(char *url, char *content, size_t content_len, char *jwt) {
   strcat(auth, bearer);
   strcat(auth, jwt);
 
-  char *buffer = NULL;
   NOPH_try(error_callback, NULL) NOPH_HttpConnection_t connection =
       NOPH_Connector_open(url); // TODO: port tls 1.3
   NOPH_HttpConnection_setRequestMethod(connection, "POST");
-  NOPH_OutputStream_t stream = NOPH_HttpConnection_openOutputStream(connection);
   NOPH_HttpConnection_setRequestProperty(connection, "authorization", auth);
+
+  NOPH_OutputStream_t stream = NOPH_HttpConnection_openOutputStream(connection);
 
   char size_str[256];
   snprintf(size_str, 256, "%i", content_len);
@@ -120,7 +120,7 @@ char *postjwt(char *url, char *content, size_t content_len, char *jwt) {
   NOPH_InputStream_t istream = NOPH_HttpConnection_openInputStream(connection);
 
   int size = NOPH_InputStream_available(istream);
-  buffer = (char *)malloc(size);
+  buffer = (char *)calloc(size + 1, 1);
   short eof;
   NOPH_InputStream_read_into(istream, buffer, size, &eof);
   NOPH_HttpConnection_close(connection);
